@@ -13,7 +13,7 @@ import System.IO.Temp (withSystemTempFile)
 import System.Process.ByteString.Lazy (readProcessWithExitCode)
 import Control.Exception (catch, SomeException)
 
--- | WAVデータを一時ファイルに保存し再生する
+-- | Save WAV data to a temporary file and play it
 playWAV :: BL.ByteString -> IO Bool
 playWAV wavData = do
   withSystemTempFile "temp.wav" $ \filePath handle -> do
@@ -23,10 +23,10 @@ playWAV wavData = do
   where
     handlePlayError :: SomeException -> IO Bool
     handlePlayError _ = do
-      BL.putStr  "WAVファイルの再生中にエラーが発生しました\n"
+      BL.putStr  "Error occurred while playing WAV file\n"
       return False
 
--- | WAVファイルを再生する
+-- | Play a WAV file
 playWAVFile :: FilePath -> IO Bool
 playWAVFile filePath = do
   let
@@ -43,10 +43,10 @@ playWAVFile filePath = do
   if BL.null stderr
     then return True
     else do
-      BL.putStr ("エラー: " <> stderr <> "\n")
+      BL.putStr ("Error: " <> stderr <> "\n")
       return False
 
--- | 現在のOS名を取得
+-- | Get current OS name
 os :: String
 os = case SysInfo.os of
   "mingw32" -> "windows"

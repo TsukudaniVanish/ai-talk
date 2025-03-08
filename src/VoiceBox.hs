@@ -10,7 +10,9 @@ module VoiceBox
   , AccentPhrase(..)
   , AudioQuery(..)
   , getAudioQuery
-  , synthesisAudio  -- エクスポートリストに追加
+  , synthesisAudio
+  , findSpeakerStyle
+  , textToSpeech
   ) where
 
 import Pre 
@@ -20,8 +22,9 @@ import qualified Data.Text as T
 import qualified Data.ByteString.Lazy as BL
 import Data.Text.Encoding (encodeUtf8)
 import Control.Exception (try)
+import Data.List (find)
 
--- スタイルタイプの定義
+-- Definition of style type
 data StyleType = Talk | Singing
   deriving (Show, Eq)
 
@@ -31,7 +34,7 @@ instance FromJSON StyleType where
     "singing" -> pure Singing
     _ -> fail $ "Unknown style type: " ++ T.unpack v
 
--- スピーカースタイルを表現するデータ型
+-- Data type representing a speaker style
 data Style = Style
   { styleName :: T.Text
   , styleId :: Int
@@ -44,18 +47,18 @@ instance FromJSON Style where
     <*> v .: "id"
     <*> v .: "type"
 
--- 合成モーフィング許可設定
-data PermittedSynthesisMorphing = All | SpeakerOnly | NoMorphing
+-- Permitted synthesis morphing settings
+data PermittedSynthesisMorphing = All | SelfOnly | NoMorphing
   deriving (Show, Eq)
 
 instance FromJSON PermittedSynthesisMorphing where
   parseJSON = withText "PermittedSynthesisMorphing" $ \v -> case v of
     "ALL" -> pure All
-    "SPEAKER_ONLY" -> pure SpeakerOnly
+    "SELF_ONLY" -> pure SelfOnly
     "NOTHING" -> pure NoMorphing
     _ -> fail $ "Unknown morphing permission: " ++ T.unpack v
 
--- サポートされている機能
+-- Supported features
 data SupportedFeatures = SupportedFeatures
   { permittedSynthesisMorphing :: PermittedSynthesisMorphing
   } deriving (Show, Eq)
@@ -64,7 +67,7 @@ instance FromJSON SupportedFeatures where
   parseJSON = withObject "SupportedFeatures" $ \v -> SupportedFeatures
     <$> v .: "permitted_synthesis_morphing"
 
--- スピーカーを表現するデータ型
+-- Data type representing a speaker
 data Speaker = Speaker
   { speakerName :: T.Text
   , speakerUuid :: T.Text
@@ -73,7 +76,7 @@ data Speaker = Speaker
   , speakerSupportedFeatures :: SupportedFeatures
   } deriving (Show, Eq)
 
--- JSONからSpeakerへのパース方法を定義
+-- Define how to parse Speaker from JSON
 instance FromJSON Speaker where
   parseJSON = withObject "Speaker" $ \v -> Speaker
     <$> v .: "name"
@@ -82,21 +85,21 @@ instance FromJSON Speaker where
     <*> v .: "version"
     <*> v .: "supported_features"
 
--- APIからスピーカー情報を取得する関数
--- baseUrl: APIのベースURL (例: "https://api.example.com")
+-- get speaker information from API
+-- baseUrl: Base URL of the API (e.g., "https://api.example.com")
 getSpeakers :: T.Text -> Maybe T.Text -> IO (Either T.Text [Speaker])
 getSpeakers baseUrl coreVersion = do
-  -- APIリクエストを作成 (必要に応じてクエリパラメータを追加)
+  -- Create API request (add query parameters if necessary)
   let endpoint = "/speakers"
       urlStr = T.unpack $ baseUrl <> endpoint
       request = case coreVersion of
         Nothing -> parseRequest_ $ "GET " <> urlStr
         Just ver -> setRequestQueryString [("core_version", Just (encodeUtf8 ver))] $ parseRequest_ $ "GET " <> urlStr
   
-  -- リクエストを実行し、レスポンスを取得
+  -- Execute request and get response
   response <- try $ httpLBS request
   
-  -- レスポンスの処理
+  -- Process response
   case response of
     Left e -> pure $ Left $ T.pack $ "HTTP request failed: " ++ show (e :: HttpException)
     Right res -> do
@@ -109,7 +112,7 @@ getSpeakers baseUrl coreVersion = do
              then pure $ Left "Validation error: Invalid parameters"
              else pure $ Left $ T.pack $ "API returned status code: " ++ show status
 
--- モーラ（音節）を表現するデータ型
+-- Data type representing a mora (syllable)
 data Mora = Mora
   { moraText :: T.Text
   , moraConsonant :: Maybe T.Text
@@ -128,7 +131,7 @@ instance FromJSON Mora where
     <*> v .: "vowel_length"
     <*> v .: "pitch"
 
--- ToJSON インスタンスの実装
+-- ToJSON instance implementation
 instance ToJSON Mora where
   toJSON mora = object
     [ "text" .= moraText mora
@@ -139,7 +142,7 @@ instance ToJSON Mora where
     , "pitch" .= moraPitch mora
     ]
 
--- アクセント句を表現するデータ型
+-- Data type representing an accent phrase
 data AccentPhrase = AccentPhrase
   { accentMoras :: [Mora]
   , accentAccent :: Int
@@ -154,7 +157,6 @@ instance FromJSON AccentPhrase where
     <*> v .:? "pause_mora"
     <*> v .: "is_interrogative"
 
--- ToJSON インスタンスの実装
 instance ToJSON AccentPhrase where
   toJSON phrase = object
     [ "moras" .= accentMoras phrase
@@ -163,7 +165,7 @@ instance ToJSON AccentPhrase where
     , "is_interrogative" .= accentIsInterrogative phrase
     ]
 
--- 音声合成クエリを表現するデータ型
+-- Data type representing an audio query for speech synthesis
 data AudioQuery = AudioQuery
   { audioQueryAccentPhrases :: [AccentPhrase]
   , audioQuerySpeedScale :: Double
@@ -194,7 +196,6 @@ instance FromJSON AudioQuery where
     <*> v .: "outputStereo"
     <*> v .:? "kana"
 
--- ToJSON インスタンスの実装
 instance ToJSON AudioQuery where
   toJSON query = object
     [ "accent_phrases" .= audioQueryAccentPhrases query
@@ -211,29 +212,29 @@ instance ToJSON AudioQuery where
     , "kana" .= audioQueryKana query
     ]
 
--- 音声合成用のクエリを作成する関数
+-- create an audio query for speech synthesis
 getAudioQuery :: T.Text -> T.Text -> Int -> Maybe T.Text -> IO (Either T.Text AudioQuery)
 getAudioQuery baseUrl text speakerId coreVersion = do
-  -- APIリクエストを作成
+  -- Create API request
   let endpoint = "/audio_query"
       urlStr = T.unpack $ baseUrl <> endpoint
       baseRequest = parseRequest_ $ "POST " <> urlStr
       
-      -- 必須クエリパラメータを設定
+      -- Set required query parameters
       reqWithParams = setRequestQueryString
         [ ("text", Just (encodeUtf8 text))
         , ("speaker", Just (encodeUtf8 $ T.pack $ show speakerId))
         ] baseRequest
       
-      -- オプションのcoreVersionを設定（指定があれば）
+      -- Set optional coreVersion (if specified)
       request = case coreVersion of
         Nothing -> reqWithParams
         Just ver -> setRequestQueryString [("core_version", Just (encodeUtf8 ver))] reqWithParams
   
-  -- リクエストを実行し、レスポンスを取得
+  -- Execute request and get response
   response <- try $ httpLBS request
   
-  -- レスポンスの処理
+  -- Process response
   case response of
     Left e -> pure $ Left $ T.pack $ "HTTP request failed: " ++ show (e :: HttpException)
     Right res -> do
@@ -246,39 +247,39 @@ getAudioQuery baseUrl text speakerId coreVersion = do
              then pure $ Left "Validation error: Invalid parameters"
              else pure $ Left $ T.pack $ "API returned status code: " ++ show status
 
--- 音声合成を実行する関数
+-- perform speech synthesis
 synthesisAudio :: T.Text -> AudioQuery -> Int -> Maybe Bool -> Maybe T.Text -> IO (Either T.Text BL.ByteString)
 synthesisAudio baseUrl query speakerId enableInterrogativeUpspeak coreVersion = do
-  -- APIリクエストを作成
+  -- Create API request
   let endpoint = "/synthesis"
       urlStr = T.unpack $ baseUrl <> endpoint
       baseRequest = parseRequest_ $ "POST " <> urlStr
 
-      -- 必須クエリパラメータを設定
+      -- Set required query parameters
       reqWithParams = setRequestQueryString
         [ ("speaker", Just (encodeUtf8 $ T.pack $ show speakerId))
         ] baseRequest
       
-      -- オプションのクエリパラメータを設定
+      -- Set optional query parameters
       reqWithInterrogative = case enableInterrogativeUpspeak of
         Nothing -> reqWithParams
         Just enable -> setRequestQueryString [("enable_interrogative_upspeak", Just (encodeUtf8 $ T.pack $ show enable))] reqWithParams
 
-      -- オプションのcoreVersionを設定
+      -- Set optional coreVersion
       reqWithCoreVersion = case coreVersion of
         Nothing -> reqWithInterrogative
         Just ver -> setRequestQueryString [("core_version", Just (encodeUtf8 ver))] reqWithInterrogative
       
-      -- リクエストボディとヘッダーを設定
+      -- Set request body and headers
       request = setRequestBodyJSON query
               $ setRequestHeader "Content-Type" ["application/json"]
               $ setRequestHeader "Accept" ["audio/wav"]
                 reqWithCoreVersion
   
-  -- リクエストを実行し、レスポンスを取得
+  -- Execute request and get response
   response <- try $ httpLBS request
   
-  -- レスポンスの処理
+  -- Process response
   case response of
     Left e -> pure $ Left $ T.pack $ "HTTP request failed: " ++ show (e :: HttpException)
     Right res -> do
@@ -288,4 +289,20 @@ synthesisAudio baseUrl query speakerId enableInterrogativeUpspeak coreVersion = 
         else if status == 422
              then pure $ Left "Validation error: Invalid parameters"
              else pure $ Left $ T.pack $ "API returned status code: " ++ show status
+
+-- get speaker style ID from speaker name and style name
+findSpeakerStyle :: T.Text -> T.Text -> [Speaker] -> Maybe Int
+findSpeakerStyle targetSpeakerName targetStyleName speakers = do
+  speaker <- find (\s -> targetSpeakerName == speakerName s) speakers
+  style <- find (\s -> targetStyleName == styleName s) (speakerStyles speaker)
+  return $ styleId style
+
+-- generate speech from text
+textToSpeech :: T.Text -> T.Text -> Int -> Maybe T.Text -> IO (Either T.Text BL.ByteString)
+textToSpeech baseUrl text speakerId coreVersion = do
+  -- Get query for speech synthesis
+  audioQueryResult <- getAudioQuery baseUrl text speakerId coreVersion
+  case audioQueryResult of
+    Left err -> pure $ Left err
+    Right query -> synthesisAudio baseUrl query speakerId Nothing coreVersion
 
