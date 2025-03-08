@@ -10,7 +10,7 @@ It requires:
 - ollama 
 - Voice Box
 
-### 1 setup .env
+### setup .env
 
 Make `.env` file. You can find example in `.env_example`
 
