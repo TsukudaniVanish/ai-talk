@@ -27,6 +27,7 @@ library
   exposed-modules:
       Chat
       Pre
+      VoiceBox
   other-modules:
       Paths_ai_talk
   autogen-modules:
