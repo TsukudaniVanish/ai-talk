@@ -28,6 +28,7 @@ library
       Chat
       Pre
       VoiceBox
+      WAV
   other-modules:
       Paths_ai_talk
   autogen-modules:
@@ -43,7 +44,9 @@ library
     , dotenv
     , http-client
     , http-conduit
+    , process-extras
     , resourcet
+    , temporary
     , text >=2.0.0
   default-language: Haskell2010
 
@@ -65,7 +68,9 @@ executable ai-talk-exe
     , dotenv
     , http-client
     , http-conduit
+    , process-extras
     , resourcet
+    , temporary
     , text >=2.0.0
   default-language: Haskell2010
 
@@ -88,6 +93,8 @@ test-suite ai-talk-test
     , dotenv
     , http-client
     , http-conduit
+    , process-extras
     , resourcet
+    , temporary
     , text >=2.0.0
   default-language: Haskell2010

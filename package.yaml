@@ -29,6 +29,8 @@ dependencies:
 - conduit
 - resourcet
 - dotenv
+- process-extras
+- temporary
 
 ghc-options:
 - -Wall
