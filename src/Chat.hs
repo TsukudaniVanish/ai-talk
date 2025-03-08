@@ -78,7 +78,7 @@ instance ToJSON ChatResponse where
         , "eval_duration" .= eval_duration
         ]
 
--- ストリーミングレスポンス用のデータ型
+-- Data type for streaming responses
 data ChatStreamResponse = ChatStreamResponse
   { strModel :: Text
   , strCreatedAt :: Text
@@ -118,16 +118,16 @@ instance ToJSON ChatStreamResponse where
         , "eval_duration" .= eval_duration
         ]
 
--- ストリーミングのコールバック関数の型
+-- Type of callback function for streaming
 type ChatStreamCallback = ChatMessage -> Bool -> IO ()
 
 ---
---- ChatRequest を ollama api に送信してレスポンスを受け取る
+--- Send ChatRequest to ollama API and receive response
 ---
 chat :: ChatRequest -> Text -> IO (Either Text ChatResponse)
 chat chatReq endpoint = do 
     req' <- parseRequest $ T.unpack (endpoint <> "/api/chat")
-    let notStreaming = chatReq { reqStream = False } -- ストリーミングを無効化
+    let notStreaming = chatReq { reqStream = False } -- Disable streaming
     let requestBody = encode notStreaming
     let request = setRequestMethod "POST" 
             $ setRequestHeader "Content-Type" ["application/json"] 
@@ -140,7 +140,7 @@ chat chatReq endpoint = do
         Just o -> return $ Right o
       
 
---- テキスト入力から簡単なChatRequestを作成するヘルパー関数
+--- Helper function to create a simple ChatRequest from text input
 --- 
 chatWithText :: Text -> Text -> Text -> IO (Either Text ChatResponse)
 chatWithText ollamaModel input = chat $ ChatRequest

@@ -15,7 +15,7 @@ import Control.Monad (void)
 
 main :: IO ()
 main = do
-  -- .envファイルを読み込む
+  -- Load .env file
   void $ loadFile defaultConfig
   url <- getOllamaURL
   model <- getOllamaModel
@@ -24,20 +24,20 @@ main = do
   T.putStrLn "Ollama chatbot started"
   loop [] url model
 
--- 環境変数からOllama URLを取得（デフォルト ""）
+-- Get Ollama URL from environment variable (default "")
 getOllamaURL :: IO Text
 getOllamaURL = do
   mUrl <- lookupEnv "OLLAMA_URL"
   return $ maybe "" T.pack mUrl
 
--- 環境変数からOllamaモデルを取得（デフォルト ""）
+-- Get Ollama model from environment variable (default "")
 getOllamaModel :: IO Text
 getOllamaModel = do
   mModel <- lookupEnv "OLLAMA_MODEL"
   return $ maybe "" T.pack mModel
 
 
--- 通常のループ
+-- Normal conversation loop
 loop :: [ChatMessage] -> Text -> Text -> IO ()
 loop history url model = do
   T.putStr "You: "
