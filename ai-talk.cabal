@@ -37,7 +37,8 @@ library
       src
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
-      aeson
+      OpenAL
+    , aeson
     , base >=4.7 && <5
     , bytestring
     , conduit
@@ -60,7 +61,8 @@ executable ai-talk-exe
       app
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      aeson
+      OpenAL
+    , aeson
     , ai-talk
     , base >=4.7 && <5
     , bytestring
@@ -85,7 +87,8 @@ test-suite ai-talk-test
       test
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      aeson
+      OpenAL
+    , aeson
     , ai-talk
     , base >=4.7 && <5
     , bytestring
