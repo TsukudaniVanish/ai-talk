@@ -13,7 +13,7 @@ import qualified Data.Text as T
 import Configuration.Dotenv (loadFile, defaultConfig)
 import Control.Monad (void, when, unless)
 import VoiceBox (getSpeakers, findSpeakerStyle, textToSpeech)
-import WAV (playWAV)
+import WAV (playWavOpenAL)
 
 main :: IO ()
 main = do
@@ -110,7 +110,7 @@ loop history url model voiceBoxUrl voiceBoxSpeaker voiceBoxStyleName = do
                       Left err -> T.putStrLn $ "Failed to generate audio: " <> err
                       Right wavData -> do
                         T.putStrLn "Playing audio response..."
-                        playResult <- playWAV wavData
+                        playResult <- playWavOpenAL wavData
                         unless playResult $ T.putStrLn "Failed to play audio"
           
           loop (messages ++ [botMessage]) url model voiceBoxUrl voiceBoxSpeaker voiceBoxStyleName
