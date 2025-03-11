@@ -1,4 +1,6 @@
 .stack-work/
+.vscode/
+.github/
 *~
 .env
 talk_script.md
