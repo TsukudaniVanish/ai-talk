@@ -11,7 +11,6 @@ module AIChatService
   )
 where
 
-import CUI (getUserInput)
 import Chat (ChatMessage (..), ChatRequest (..), ChatResponse (..), chat)
 import Control.Monad.State
 import Data.Text (Text)
