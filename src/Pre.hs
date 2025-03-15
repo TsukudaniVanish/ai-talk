@@ -1,6 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
-module Pre(module Prelude) where 
+
+module Pre (module Prelude) where
+
 --- Pluerde の耐腐食層
 
-import Prelude hiding (putStrLn, putStr, getLine, readLn, readIO, readLn, readIO, read, readLn, readIO, read)
-
+import Prelude hiding (getLine, putStr, putStrLn, read, readIO, readLn)

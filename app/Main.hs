@@ -1,18 +1,32 @@
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE DeriveGeneric #-}
+
 module Main (main) where
 
-import Pre
+import Chat (ChatMessage (..), ChatRequest (..), ChatResponse (..), chat)
+import Configuration.Dotenv (defaultConfig, loadFile)
+import Control.Monad (unless, void, when)
 import Data.Text (Text)
-import System.IO (hFlush, stdout)
-import qualified Data.Text.IO as T
-import Chat(chat, ChatMessage(..), ChatResponse(..), ChatRequest(..))
-import System.Environment (lookupEnv)
 import qualified Data.Text as T
-import Configuration.Dotenv (loadFile, defaultConfig)
-import Control.Monad (void, when, unless)
-import VoiceBox (getSpeakers, findSpeakerStyle, textToSpeech)
+import qualified Data.Text.IO as T
+import Pre
+  ( Bool (False),
+    Either (Left, Right),
+    Eq ((/=), (==)),
+    IO,
+    Maybe (Just, Nothing),
+    Monad (return, (>>)),
+    Semigroup ((<>)),
+    Show (show),
+    maybe,
+    ($),
+    (++),
+    (||),
+  )
+import System.Environment (lookupEnv)
+import System.IO (hFlush, stdout)
+import VoiceBox (findSpeakerStyle, getSpeakers, textToSpeech)
 import WAV (playWavOpenAL)
 
 main :: IO ()
@@ -24,16 +38,16 @@ main = do
   voiceBoxUrl <- getVoiceBoxURL
   voiceBoxSpeaker <- getVoiceBoxSpeaker
   voiceBoxStyleName <- getVoiceBoxStyleName
-  
+
   T.putStrLn $ "Using Ollama URL: " <> url
   T.putStrLn $ "Using Ollama Model: " <> model
-  
+
   -- Display VoiceBox information
   when (voiceBoxUrl /= "") $ do
     T.putStrLn $ "Using VoiceBox URL: " <> voiceBoxUrl
     T.putStrLn $ "Using VoiceBox Speaker: " <> voiceBoxSpeaker
     T.putStrLn $ "Using VoiceBox Style: " <> voiceBoxStyleName
-    
+
     -- Retrieve speaker information and confirm style ID
     speakersResult <- getSpeakers voiceBoxUrl Nothing
     case speakersResult of
@@ -42,7 +56,7 @@ main = do
         case findSpeakerStyle voiceBoxSpeaker voiceBoxStyleName speakers of
           Nothing -> T.putStrLn "Specified speaker or style not found"
           Just styleId -> T.putStrLn $ "Found style ID: " <> T.pack (show styleId)
-  
+
   T.putStrLn "Ollama chatbot started"
   loop [] url model voiceBoxUrl voiceBoxSpeaker voiceBoxStyleName
 
@@ -95,7 +109,7 @@ loop history url model voiceBoxUrl voiceBoxSpeaker voiceBoxStyleName = do
           let botMessage = resMessage r
               botContent = content botMessage
           T.putStrLn $ "assistant: " <> botContent
-          
+
           -- If VoiceBox URL is set, perform speech synthesis and playback
           when (voiceBoxUrl /= "") $ do
             speakersResult <- getSpeakers voiceBoxUrl Nothing
@@ -112,8 +126,5 @@ loop history url model voiceBoxUrl voiceBoxSpeaker voiceBoxStyleName = do
                         T.putStrLn "Playing audio response..."
                         playResult <- playWavOpenAL wavData
                         unless playResult $ T.putStrLn "Failed to play audio"
-          
+
           loop (messages ++ [botMessage]) url model voiceBoxUrl voiceBoxSpeaker voiceBoxStyleName
-
-
-
