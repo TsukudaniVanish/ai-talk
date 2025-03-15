@@ -7,14 +7,13 @@ module VoiceBox
     StyleType (..),
     SupportedFeatures (..),
     PermittedSynthesisMorphing (..),
-    getSpeakers,
     Mora (..),
     AccentPhrase (..),
     AudioQuery (..),
     getAudioQuery,
     synthesisAudio,
-    findSpeakerStyle,
     textToSpeech,
+    getSpeakerStyleId,
   )
 where
 
@@ -386,12 +385,32 @@ synthesisAudio baseUrl query speakerId enableInterrogativeUpspeak coreVersion = 
             then pure $ Left "Validation error: Invalid parameters"
             else pure $ Left $ T.pack $ "API returned status code: " ++ show status
 
--- get speaker style ID from speaker name and style name
+-- | find speaker style ID from speaker name and style name
 findSpeakerStyle :: T.Text -> T.Text -> [Speaker] -> Maybe Int
 findSpeakerStyle targetSpeakerName targetStyleName speakers = do
   speaker <- find (\s -> targetSpeakerName == speakerName s) speakers
   style <- find (\s -> targetStyleName == styleName s) (speakerStyles speaker)
   return $ styleId style
+
+-- | Get styleID from speaker name and style name
+getSpeakerStyleId ::
+  -- | Speaker name
+  T.Text ->
+  -- | Style name
+  T.Text ->
+  -- | Base URL
+  T.Text ->
+  -- | Core version
+  Maybe T.Text ->
+  IO (Either T.Text Int)
+getSpeakerStyleId targetSpeakerName targetStyleName baseUrl coreVersion = do
+  speakersResult <- getSpeakers baseUrl coreVersion
+  case speakersResult of
+    Left err -> pure $ Left err
+    Right speakers -> do
+      case findSpeakerStyle targetSpeakerName targetStyleName speakers of
+        Nothing -> pure $ Left ("Specified speaker or style not found\nspeakers:\n" <> T.pack (show speakers))
+        Just sid -> pure $ Right sid
 
 -- generate speech from text
 textToSpeech :: T.Text -> T.Text -> Int -> Maybe T.Text -> IO (Either T.Text BL.ByteString)

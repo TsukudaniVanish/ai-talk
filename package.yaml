@@ -28,6 +28,7 @@ dependencies:
 - resourcet
 - dotenv
 - OpenAL
+- mtl
 
 ghc-options:
 - -Wall
