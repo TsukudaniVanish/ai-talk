@@ -25,10 +25,12 @@ source-repository head
 
 library
   exposed-modules:
+      AIChatService
       Chat
       CUI
       ENV
       Pre
+      Usecase.AIChatService
       VoiceBox
       WAV
   other-modules:
