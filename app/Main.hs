@@ -9,7 +9,7 @@ import qualified Data.Text.IO as T
 import qualified ENV
 import Infrastructures.ContaierIO (ContainerIO (..), ContainerIOState (..))
 import Pre
-import Usecase.AIChatService2 (runAIChatService)
+import Usecase.AIChatService (runAIChatService)
 import VoiceBox (getSpeakerStyleId)
 
 main :: IO ()

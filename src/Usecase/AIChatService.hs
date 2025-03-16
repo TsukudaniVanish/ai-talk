@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Usecase.AIChatService2
+module Usecase.AIChatService
   ( generateMessage,
     playMessage,
     processMessage,

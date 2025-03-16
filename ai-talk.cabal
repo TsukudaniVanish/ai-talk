@@ -35,7 +35,7 @@ library
       Infrastructures.TTSIO
       Interfaces.Repository
       Pre
-      Usecase.AIChatService2
+      Usecase.AIChatService
       Usecase.Chat
       Usecase.Controller
       Usecase.Repository
