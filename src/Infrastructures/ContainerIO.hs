@@ -1,6 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Infrastructures.ContaierIO
+module Infrastructures.ContainerIO
   ( ContainerIO (..),
     ContainerIOState (..),
     getContainerIOState,

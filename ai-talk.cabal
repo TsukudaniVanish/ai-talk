@@ -30,7 +30,7 @@ library
       Entity.ChatPiece
       ENV
       Infrastructures.ChatIO
-      Infrastructures.ContaierIO
+      Infrastructures.ContainerIO
       Infrastructures.ControllerIO
       Infrastructures.TTSIO
       Interfaces.Repository

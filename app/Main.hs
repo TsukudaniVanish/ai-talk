@@ -7,7 +7,7 @@ import Control.Monad.State
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import qualified ENV
-import Infrastructures.ContaierIO (ContainerIO (..), ContainerIOState (..))
+import Infrastructures.ContainerIO (ContainerIO (..), ContainerIOState (..))
 import Pre
 import Usecase.AIChatService (runAIChatService)
 import VoiceBox (getSpeakerStyleId)
