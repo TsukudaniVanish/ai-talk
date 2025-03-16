@@ -2,67 +2,63 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 
 module Usecase.AIChatService
-  ( AITalkConfig (..),
-    ChatCharacter (..),
-    ChatPiece (..),
-    IAIChartService (..),
+  ( generateMessage,
+    playMessage,
     processMessage,
-    pack,
-    unpack,
+    runAIChatService,
   )
 where
 
-import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.Text (Text)
-import qualified Data.Text.IO as T
+import Entity.ChatPiece (ChatCharacter (..), ChatPiece (..))
 import Pre
+import Usecase.Chat (IChatService (..))
+import Usecase.Controller (IController (..), UserInput (..))
+import Usecase.Repository (IRepository (..))
+import Usecase.TTS (ITextToSpeech (..))
 
-data AITalkConfig = AITalkConfig
-  { ollamaUrl :: Text,
-    ollamaModel :: Text,
-    voiceBoxUrl :: Text,
-    voiceBoxStyleId :: Maybe Int
-  }
+-- \| Generate a response message from AI. If succeeded, it updates the chat history.
+generateMessage :: (IChatService m, IRepository m) => Text -> m (Either Text Text)
+generateMessage input = do
+  history <- fetchChatHistory
+  aiResponse <- chatResponse (history ++ [ChatPiece User input])
+  case aiResponse of
+    Left err -> return $ Left err
+    Right response -> do
+      pushChatPieceToHistory (ChatPiece User input)
+      pushChatPieceToHistory (ChatPiece Assistant response)
+      return $ Right response
 
-data ChatCharacter = User | Assistant
-  deriving (Show)
+-- | Play a message using the VoiceBox service
+playMessage :: (IController m, ITextToSpeech m) => Text -> m (Either Text ())
+playMessage response = do
+  ttsResponse <- textToSpeech response
+  case ttsResponse of
+    Left err -> return $ Left err
+    Right wav -> do
+      playResult <- playWav wav
+      if playResult
+        then return $ Right ()
+        else return $ Left "Failed to play the message."
 
-unpack :: ChatCharacter -> Text
-unpack User = "user"
-unpack Assistant = "assistant"
-
-pack :: Text -> Either Text ChatCharacter
-pack "user" = Right User
-pack "assistant" = Right Assistant
-pack _ = Left "Invalid character"
-
-data ChatPiece = ChatPiece
-  { character :: ChatCharacter,
-    script :: Text
-  }
-  deriving (Show)
-
-class (MonadIO m) => IAIChartService m where
-  -- | Generate a response message from AI. If succeeded, it updates the chat history.
-  generateMessage :: Text -> m (Either Text Text)
-
-  -- | Play a message using the VoiceBox service
-  playMessage :: Text -> m (Either Text ())
-
-  -- | Fetch chat history
-  fetchChatHistory :: m [ChatPiece]
-
-  -- | Push a chat piece to the chat history
-  pushChatPieceToHistory :: ChatPiece -> m ()
-
-processMessage :: (IAIChartService m) => Text -> m ()
+processMessage :: (IController m, IRepository m, ITextToSpeech m, IChatService m) => Text -> m ()
 processMessage input = do
   aiResponse <- generateMessage input
   case aiResponse of
-    Left err -> liftIO $ T.putStrLn err
+    Left err -> printMessage err
     Right response -> do
-      liftIO $ T.putStrLn response
+      printMessage response
       playResult <- playMessage response
       case playResult of
-        Left err -> liftIO $ T.putStrLn err
+        Left err -> printMessage err
         Right _ -> return ()
+
+-- | main loop for the AI chat service
+runAIChatService :: (IChatService m, IRepository m, IController m, ITextToSpeech m) => m ()
+runAIChatService = do
+  input <- getUserInput
+  case input of
+    Quit -> return ()
+    Message msg -> do
+      processMessage msg
+      runAIChatService

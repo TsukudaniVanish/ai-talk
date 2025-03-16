@@ -3,18 +3,13 @@
 
 module Main (main) where
 
-import AIChatService (AIChatService (..))
-import CUI (CUICommand (..), getUserInput, parseUserInput)
 import Control.Monad.State
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import qualified ENV
+import Infrastructures.ContainerIO (ContainerIO (..), ContainerIOState (..))
 import Pre
-import Usecase.AIChatService
-  ( AITalkConfig (..),
-    IAIChartService (..),
-    processMessage,
-  )
+import Usecase.AIChatService (runAIChatService)
 import VoiceBox (getSpeakerStyleId)
 
 main :: IO ()
@@ -49,16 +44,5 @@ main = do
             T.putStrLn $ "Using VoiceBox Style ID: " <> T.pack (show styleId)
             return $ Just styleId
 
-  let config = AITalkConfig url model vbUrl mstyleId
-  void $ runStateT (runAIChatService loop) ([], config)
-
--- Normal conversation loop
-loop :: (IAIChartService m) => m ()
-loop = do
-  input <- liftIO getUserInput
-  let command = parseUserInput input
-  case command of
-    QuitCommand -> liftIO $ T.putStrLn "Goodbye!"
-    MessageCommand msg -> do
-      processMessage msg
-      loop
+  let config = ContainerIOState url model vbUrl mstyleId []
+  void $ runStateT (runContainerIO runAIChatService) config
