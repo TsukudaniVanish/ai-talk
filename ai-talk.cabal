@@ -25,12 +25,21 @@ source-repository head
 
 library
   exposed-modules:
-      AIChatService
       Chat
       CUI
+      Entity.ChatPiece
       ENV
+      Infrastructures.ChatIO
+      Infrastructures.ContaierIO
+      Infrastructures.ControllerIO
+      Infrastructures.TTSIO
+      Interfaces.Repository
       Pre
-      Usecase.AIChatService
+      Usecase.AIChatService2
+      Usecase.Chat
+      Usecase.Controller
+      Usecase.Repository
+      Usecase.TTS
       VoiceBox
       WAV
   other-modules:
