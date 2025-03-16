@@ -1,7 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Usecase.AIChatService2 where
+module Usecase.AIChatService2
+  ( generateMessage,
+    playMessage,
+    processMessage,
+    runAIChatService,
+  )
+where
 
 import Data.Text (Text)
 import Entity.ChatPiece (ChatCharacter (..), ChatPiece (..))
